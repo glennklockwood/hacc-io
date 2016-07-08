@@ -1,5 +1,5 @@
-#include "RestartIO_GLEAN.h"
-#include "GLEAN_Util_Printmessage.h"
+#include "restartio_glean.h"
+#include "glean_util_printmessage.h"
 
 #ifdef __bgq__
 // Needed for the various Personality functions
@@ -106,7 +106,7 @@ int RestartIO_GLEAN :: CreateCheckpoint (char* pathname, int64_t& num_particles)
     // Set the Base Path Name
     m_basePathName = new char [GLEAN_MAX_STRING_LEN];
     memset (m_basePathName, '\0', GLEAN_MAX_STRING_LEN * sizeof(char));
-	
+    
     strncpy (m_basePathName, pathname, strlen(pathname));
     
     m_basePathNameLen = GLEAN_MAX_STRING_LEN;
@@ -120,9 +120,9 @@ int RestartIO_GLEAN :: CreateCheckpoint (char* pathname, int64_t& num_particles)
     snprintf (m_partFileName, m_partFileNameLen, "%s-Part%08d-of-%08d.data",
               m_basePathName, m_partitionID, m_totPartitions);
     
-    //	----------------------------------------
+    //    ----------------------------------------
     //   Total number of particles in Partition
-    //	----------------------------------------
+    //    ----------------------------------------
     MPI_Allreduce(&m_localParticles, &m_totPartParticles, 1, MPI_LONG_LONG,
                   MPI_SUM, m_partitionComm);
     
@@ -132,10 +132,10 @@ int RestartIO_GLEAN :: CreateCheckpoint (char* pathname, int64_t& num_particles)
     
     // \TODO : Make this more dynamic. For now this will work on 96 Sequoia Racks
     m_headerSize = FILE_HEADER_SIZE_MAX;
-	
-    //	----------------------------------------------
-    //	Calculate the total Size of the Partition file
-    //	----------------------------------------------
+    
+    //    ----------------------------------------------
+    //    Calculate the total Size of the Partition file
+    //    ----------------------------------------------
     int64_t record_size,  tot_file_size;
     
     record_size = (7 * sizeof(float)) + sizeof(int64_t) + sizeof(uint16_t);
@@ -159,7 +159,7 @@ int RestartIO_GLEAN :: CreateCheckpoint (char* pathname, int64_t& num_particles)
         m_header[7] = (int64_t)m_totPartitions;
         m_header[8] = (int64_t)m_partitionID;
     }
-	
+    
     // Gather the particle count from each rank in Partition
     MPI_Gather(&num_particles, 1, MPI_LONG_LONG,
                &m_header[HEADER_METAINFO_SIZE], 1, MPI_LONG_LONG,
@@ -323,7 +323,7 @@ int64_t RestartIO_GLEAN :: OpenRestart (char* pathname)
     // Set the Base Path Name
     m_basePathName = new char [GLEAN_MAX_STRING_LEN];
     memset (m_basePathName, '\0', GLEAN_MAX_STRING_LEN * sizeof(char));
-	
+    
     strncpy (m_basePathName, pathname, strlen(pathname));
     
     m_basePathNameLen = GLEAN_MAX_STRING_LEN;
@@ -794,9 +794,9 @@ int RestartIO_GLEAN :: Close (void)
 
 int RestartIO_GLEAN :: SetMPIIOSharedFilePointer (void)
 {
-	m_filePtrMode = SHARED_FILE_PTR;
-	
-	return 0;
+    m_filePtrMode = SHARED_FILE_PTR;
+    
+    return 0;
 }
 
 int RestartIO_GLEAN :: SetMPIOIndepFilePointer (void)
@@ -857,7 +857,7 @@ void RestartIO_GLEAN::__HandleMPIIOError (int errcode, char *str)
     MPI_Error_string(errcode, msg, &resultlen);
     fprintf(stderr, "%s: %s\n", str, msg);
     
-	return;
+    return;
 }
 
 void RestartIO_GLEAN::PrintIOCoordInfo (void)
@@ -1233,16 +1233,16 @@ int RestartIO_GLEAN :: Write(float *xx, float *yy, float *zz,
     
     record_size = (7 * sizeof(float)) + sizeof(int64_t) + sizeof(uint16_t);
     
-	MPI_Offset ofst = m_headerSize; // file pointer
+    MPI_Offset ofst = m_headerSize; // file pointer
     off_t pos_offst = m_headerSize;
     
     num_particles =  m_localParticles;
     
-	MPI_Exscan(&num_particles, &scan_size, 1,
+    MPI_Exscan(&num_particles, &scan_size, 1,
                MPI_LONG_LONG, MPI_SUM, m_partitionComm);
     
-	if (0== m_partitionRank)
-		scan_size = 0;
+    if (0== m_partitionRank)
+        scan_size = 0;
 
     
     if (m_interface == USE_POSIX)
@@ -1296,7 +1296,7 @@ int RestartIO_GLEAN :: Write(float *xx, float *yy, float *zz,
         }
     
         ofst += num_particles * sizeof(float);
-	
+    
         errcode = MPI_File_write_at (m_fileHandle, ofst, yy, num_particles, MPI_FLOAT, &status);
         if (MPI_SUCCESS != errcode)
         {
@@ -1310,42 +1310,42 @@ int RestartIO_GLEAN :: Write(float *xx, float *yy, float *zz,
             __HandleMPIIOError(errcode, (char *)"MPI_FILE_Write_At ZZ");
         }
         ofst += num_particles * sizeof(float);
-	
+    
         errcode = MPI_File_write_at (m_fileHandle, ofst, vx, num_particles, MPI_FLOAT, &status);
         if (MPI_SUCCESS != errcode)
         {
             __HandleMPIIOError(errcode, (char *)"MPI_FILE_Write_At VX");
         }
         ofst += num_particles * sizeof(float);
-	
+    
         errcode = MPI_File_write_at (m_fileHandle, ofst, vy, num_particles, MPI_FLOAT, &status);
         if (MPI_SUCCESS != errcode)
         {
             __HandleMPIIOError(errcode, (char *)"MPI_FILE_Write_At VY");
         }
         ofst += num_particles * sizeof(float);
-	
+    
         errcode = MPI_File_write_at (m_fileHandle, ofst, vz, num_particles, MPI_FLOAT, &status);
         if (MPI_SUCCESS != errcode)
         {
             __HandleMPIIOError(errcode, (char *)"MPI_FILE_Write_At VZ");
         }
         ofst += num_particles * sizeof(float);
-	
+    
         errcode = MPI_File_write_at (m_fileHandle, ofst, phi, num_particles, MPI_FLOAT, &status);
         if (MPI_SUCCESS != errcode)
         {
             __HandleMPIIOError(errcode, (char *)"MPI_FILE_Write_At PHI");
         }
         ofst += num_particles * sizeof(float);
-	
+    
         errcode = MPI_File_write_at (m_fileHandle, ofst, pid, num_particles, MPI_LONG_LONG, &status);
         if (MPI_SUCCESS != errcode)
         {
             __HandleMPIIOError(errcode, (char *)"MPI_FILE_Write_At PID");
         }
         ofst += num_particles * sizeof(int64_t);
-	
+    
         errcode = MPI_File_write_at (m_fileHandle, ofst, mask, num_particles, MPI_UNSIGNED_SHORT, &status);
         if (MPI_SUCCESS != errcode)
         {
@@ -1388,7 +1388,7 @@ int RestartIO_GLEAN::Read ( float *&xx, float *&yy, float *&zz,
     int64_t scan_size = 0, num_particles, nread;
     num_particles =  m_localParticles;
     
-	MPI_Exscan(&num_particles, &scan_size, 1, MPI_LONG_LONG, MPI_SUM, m_partitionComm);
+    MPI_Exscan(&num_particles, &scan_size, 1, MPI_LONG_LONG, MPI_SUM, m_partitionComm);
     
     if (0== m_partitionRank)
         scan_size = 0;
@@ -1400,15 +1400,15 @@ int RestartIO_GLEAN::Read ( float *&xx, float *&yy, float *&zz,
     
     
     // allocate data arrrays and create data type
-	xx = new float[num_particles];
-	yy = new float[num_particles];
-	zz = new float[num_particles];
-	vx = new float[num_particles];
-	vy = new float[num_particles];
-	vz = new float[num_particles];
-	phi = new float[num_particles];
-	pid = new int64_t[num_particles];
-	mask = new uint16_t[num_particles];
+    xx = new float[num_particles];
+    yy = new float[num_particles];
+    zz = new float[num_particles];
+    vx = new float[num_particles];
+    vy = new float[num_particles];
+    vz = new float[num_particles];
+    phi = new float[num_particles];
+    pid = new int64_t[num_particles];
+    mask = new uint16_t[num_particles];
     
     
     if (m_interface == USE_MPIIO)

@@ -60,7 +60,7 @@ enum GLEAN_MPIIO_FILE_PTR
 static const int GLEAN_MAX_STRING_LEN           = 8192;
 
 // Set this to 24 MB for now
-static const int64_t FILE_HEADER_SIZE_MAX		= 25165824;
+static const int64_t FILE_HEADER_SIZE_MAX        = 25165824;
 
 static const int HEADER_METAINFO_SIZE          = 16;
 
@@ -70,9 +70,9 @@ class RestartIO_GLEAN
 public:
     
     RestartIO_GLEAN ();
-		
+        
     ~RestartIO_GLEAN ();
-		
+        
     int Initialize (MPI_Comm comm);
 
     int Finalize (void);
@@ -80,9 +80,9 @@ public:
     int CreateCheckpoint (char* path_prefix, int64_t& num_particles);
     
     int64_t OpenRestart (char* pathname);
-	
+    
     int Close (void);
-	
+    
     int Write ( float* xx, float* yy, float* zz,
                 float* vx, float* vy, float* vz,
                 float* phi, int64_t* pid,
@@ -110,7 +110,7 @@ public:
     void SetPOSIX_IO_Interface(int val = 0);
     
     void PrintIOCoordInfo (void);
-	
+    
 private:
     
     int __duplicateCommunicator (MPI_Comm comm);
@@ -164,19 +164,19 @@ private:
     
 
 private:
-		
+        
     MPI_Comm m_globalComm; //  Global Communicator
 
     int m_globalCommSize; // Size of Global Communicator
-		
+        
     int m_globalCommRank; // Rank of Global Communicator
         
     int m_totPartitions; // Divide into partitions and write a file out per partition
     
     int m_partitionID; // 1D Partition ID
-	
+    
     int m_idInPartition; // Rank ID in the given partition
-		
+        
     MPI_Comm m_partitionComm;
 
     int m_partitionSize;
