@@ -39,6 +39,7 @@ int main (int argc, char * argv[])
     strncpy (fname, argv[2], strlen(argv[2]));
     fname[strlen(argv[2])] = '\0';
     
+#ifndef HACC_IO_DISABLE_WRITE
     // Let's Populate Some Dummy Data
     float *xx, *yy, *zz, *vx, *vy, *vz, *phi;
     int64_t* pid;
@@ -54,7 +55,6 @@ int main (int argc, char * argv[])
     pid = new int64_t[num_particles];
     mask = new uint16_t[num_particles];
     
-    
     for (uint64_t i = 0; i< num_particles; i++)
     {
         xx[i] = (float)i;
@@ -67,6 +67,7 @@ int main (int argc, char * argv[])
         pid[i] =  (int64_t)i;
         mask[i] = (uint16_t)myrank;
     }
+#endif
 
     RestartIO_GLEAN* rst = new RestartIO_GLEAN();
     
@@ -75,13 +76,15 @@ int main (int argc, char * argv[])
     //rst->SetPOSIX_IO_Interface(1);
     rst->SetPOSIX_IO_Interface();
 
+#ifndef HACC_IO_DISABLE_WRITE
     rst->CreateCheckpoint (fname, num_particles);
     
-    rst -> Write ( xx, yy, zz, vx, vy, vz, phi, pid, mask);
+    rst->Write(xx, yy, zz, vx, vy, vz, phi, pid, mask);
         
     rst->Close();
+#endif
 
-    
+#ifndef HACC_IO_DISABLE_READ
     // Let's Read Restart File Now
     
     float *xx_r, *yy_r, *zz_r, *vx_r, *vy_r, *vz_r, *phi_r;
@@ -101,7 +104,8 @@ int main (int argc, char * argv[])
 
     rst->Close();
 
-    // Verify The contents
+#ifndef HACC_IO_DISABLE_WRITE
+    // Verify the contents if we have the original values stored in memory
     for (uint64_t i = 0; i< num_particles; i++)
     {
         if ((xx[i] != xx_r[i]) || (yy[i] != yy_r[i]) || (zz[i] != zz_r[i])
@@ -118,41 +122,46 @@ int main (int argc, char * argv[])
             MPI_Abort (MPI_COMM_WORLD, -1);
         }
     }
+#endif
     
     MPI_Barrier(MPI_COMM_WORLD);
     
+#ifndef HACC_IO_DISABLE_WRITE
     if (0 == myrank)
         cout << " CONTENTS VERIFIED... Success " << endl;
+#endif
+#endif
     
     rst->Finalize();
 
     delete rst;
     rst = 0;
     
+#ifndef HACC_IO_DISABLE_WRITE
     // Delete the Arrays
     delete []xx;
-    delete []xx_r;
-    delete []yy;
-    delete []yy_r;
-    delete []zz;
-    delete []zz_r;
-    delete []vx;
-    delete []vx_r;
-    delete []vy;
-    delete []vy_r;
-    delete []vz;
-    delete []vz_r;
-    
-    delete []phi;
-    delete []phi_r;
-    
-    delete [] pid;
-    delete [] pid_r;
-    
-    delete [] mask;
-    delete [] mask_r;
-    
 
+    delete []yy;
+    delete []zz;
+    delete []vx;
+    delete []vy;
+    delete []vz;
+    delete []phi;
+    delete []pid;
+    delete []mask;
+#endif
+
+#ifndef HACC_IO_DISABLE_READ
+    delete []xx_r;
+    delete []yy_r;
+    delete []zz_r;
+    delete []vx_r;
+    delete []vy_r;
+    delete []vz_r;
+    delete []phi_r;
+    delete []pid_r;
+    delete []mask_r;
+#endif
     MPI_Finalize();
 
     return 0;

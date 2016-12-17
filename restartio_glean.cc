@@ -27,7 +27,11 @@ RestartIO_GLEAN::RestartIO_GLEAN () :
                                     m_startTime(0),
                                     m_endTime (0),
                                     m_preallocFile(1),
+#ifdef HACC_IO_FILE_PER_PROCESS
+                                    m_fileDist (GLEAN_FILE_PER_RANK)
+#else
                                     m_fileDist (GLEAN_SINGLE_FILE)
+#endif
 {
     // \TODO : Make this more dynamic. For now this will work on 96 Sequoia Racks
     m_headerSize = FILE_HEADER_SIZE_MAX;
