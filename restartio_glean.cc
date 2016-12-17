@@ -27,6 +27,7 @@ RestartIO_GLEAN::RestartIO_GLEAN () :
                                     m_startTime(0),
                                     m_endTime (0),
                                     m_preallocFile(1),
+                                    m_readSize(0),
 #ifdef HACC_IO_FILE_PER_PROCESS
                                     m_fileDist (GLEAN_FILE_PER_RANK)
 #else
@@ -354,6 +355,8 @@ int64_t RestartIO_GLEAN :: OpenRestart (char* pathname)
             status = this->__MPIIO_Read_Header();
             break;
     }
+    // __MPIIO_Read_header and __POSIX_Read_Header both always ready m_headerSize
+    m_readSize += m_headerSize;
 
     // Scatter the particles count
     MPI_Scatter(&m_header[HEADER_METAINFO_SIZE],
@@ -717,18 +720,26 @@ int RestartIO_GLEAN :: Close (void)
     //  --------------------
     double tot_time, agg_max_time =0, agg_min_time, agg_avg_time;
     double part_max_time, part_min_time;
-    int64_t tot_data_size, part_size;
+    int64_t tot_data_size;
     
     tot_time = m_endTime - m_startTime;
     
-    part_size = 0;
-    if (0 ==m_partitionRank)
-        part_size = m_partFileSize;
-    
+   
     //  Compute Global Stats
     MPI_Reduce (&tot_time, &agg_max_time, 1, MPI_DOUBLE, MPI_MAX, 0, m_globalComm);
     MPI_Reduce (&tot_time, &agg_min_time, 1, MPI_DOUBLE, MPI_MIN, 0, m_globalComm);
-    MPI_Reduce (&part_size, &tot_data_size, 1, MPI_LONG_LONG, MPI_SUM, 0, m_globalComm);
+
+    if ( m_mode == WRITE_CHECKPOINT)
+    {
+        int64_t part_size = 0;
+        if (m_partitionRank == 0)
+            part_size = m_partFileSize;
+        MPI_Reduce (&part_size, &tot_data_size, 1, MPI_LONG_LONG, MPI_SUM, 0, m_globalComm);
+    }
+    else
+    {
+        MPI_Reduce (&m_readSize, &tot_data_size, 1, MPI_LONG_LONG, MPI_SUM, 0, m_globalComm);
+    }
     
     
     if (0 == m_globalCommRank)
@@ -1399,7 +1410,7 @@ int RestartIO_GLEAN::Read ( float *&xx, float *&yy, float *&zz,
     
     int64_t record_size = (7*sizeof(float)) + sizeof(int64_t) + sizeof(uint16_t);
     
-    MPI_Offset ofst = m_headerSize;
+    MPI_Offset ofst = m_headerSize, ofst0;
     off_t pos_offst = m_headerSize;
     
     
@@ -1418,6 +1429,7 @@ int RestartIO_GLEAN::Read ( float *&xx, float *&yy, float *&zz,
     if (m_interface == USE_MPIIO)
     {
         ofst += scan_size * record_size;
+        ofst0 = ofst;
         
         errcode = MPI_File_read_at (m_fileHandle, ofst, xx, num_particles, MPI_FLOAT, &status);
         if (MPI_SUCCESS != errcode)
@@ -1480,52 +1492,51 @@ int RestartIO_GLEAN::Read ( float *&xx, float *&yy, float *&zz,
         {
             __HandleMPIIOError(errcode, (char *)"MPI_FILE_Read_At Mask");
         }
-
+        m_readSize = ofst + num_particles * sizeof(uint16_t) - ofst0;
     }
     else if (m_interface == USE_POSIX)
     {
         pos_offst += (scan_size * record_size);
         nread = num_particles * sizeof(float);
-        errcode = __POSIX_Read_Data ((unsigned char*)xx, nread, pos_offst);
+        m_readSize += __POSIX_Read_Data ((unsigned char*)xx, nread, pos_offst);
 
         pos_offst += (num_particles * sizeof(float));
         nread = num_particles * sizeof(float);
-        errcode = __POSIX_Read_Data ((unsigned char*)yy, nread, pos_offst);
+        m_readSize += __POSIX_Read_Data ((unsigned char*)yy, nread, pos_offst);
         
         pos_offst += (num_particles * sizeof(float));
         nread = num_particles * sizeof(float);
-        errcode = __POSIX_Read_Data ((unsigned char*)zz, nread, pos_offst);
+        m_readSize += __POSIX_Read_Data ((unsigned char*)zz, nread, pos_offst);
         
         pos_offst += (num_particles * sizeof(float));
         nread = num_particles * sizeof(float);
-        errcode = __POSIX_Read_Data ((unsigned char*)vx, nread, pos_offst);
+        m_readSize += __POSIX_Read_Data ((unsigned char*)vx, nread, pos_offst);
         
         pos_offst += (num_particles * sizeof(float));
         nread = num_particles * sizeof(float);
-        errcode = __POSIX_Read_Data ((unsigned char*)vy, nread, pos_offst);
+        m_readSize += __POSIX_Read_Data ((unsigned char*)vy, nread, pos_offst);
         
         pos_offst += (num_particles * sizeof(float));
         nread = num_particles * sizeof(float);
-        errcode = __POSIX_Read_Data ((unsigned char*)vz, nread, pos_offst);
+        m_readSize += __POSIX_Read_Data ((unsigned char*)vz, nread, pos_offst);
         
         pos_offst += (num_particles * sizeof(float));
         nread = num_particles * sizeof(float);
-        errcode = __POSIX_Read_Data ((unsigned char*)phi, nread, pos_offst);
+        m_readSize += __POSIX_Read_Data ((unsigned char*)phi, nread, pos_offst);
        
         pos_offst += (num_particles * sizeof(float));
         nread = num_particles * sizeof(int64_t);
-        errcode = __POSIX_Read_Data ((unsigned char*)pid, nread, pos_offst);
+        m_readSize += __POSIX_Read_Data ((unsigned char*)pid, nread, pos_offst);
         
         pos_offst += (num_particles * sizeof(int64_t));
         nread = num_particles * sizeof(uint16_t);
-        errcode = __POSIX_Read_Data ((unsigned char*)mask, nread, pos_offst);
+        m_readSize += __POSIX_Read_Data ((unsigned char*)mask, nread, pos_offst);
         
     }
     else
     {
         cout << " Unknown Mode for Reading Data" << endl;
     }
-    
 
     return 0;
 }

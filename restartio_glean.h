@@ -212,6 +212,8 @@ private:
     int m_posixFD; // POSIX Descriptor
     
     int64_t m_partFileSize; // Valid only on the Part Comm Root
+
+    int64_t m_readSize; // how many bytes were read in
     
     int64_t* m_header;
 
