@@ -884,7 +884,7 @@ void RestartIO_GLEAN::PrintIOCoordInfo (void)
         switch (m_fileDist)
         {
             case GLEAN_FILE_PER_RANK:
-                cout << " Mode: Single Shared File" << endl;
+                cout << " Mode: File per Rank" << endl;
                 break;
             
             #ifdef __bgq__
